@@ -1,37 +1,46 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: votacion-server-deployment
+  name: voting-server-deployment
   labels:
-    app: votacion-server
+    app: voting-app
+    component: server
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: votacion-server
+      component: server
   template:
     metadata:
       labels:
-        app: votacion-server
+        app: voting-app
+        component: server
     spec:
       containers:
-      - name: server-container
+      - name: voting-server
         image: joaquinpicazo/votacion_server:latest
         ports:
-        - containerPort: 65432
-
+        - name: tcp-socket
+          containerPort: 65432
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        imagePullPolicy: Always
 ---
 
 apiVersion: v1
 kind: Service
 metadata:
-  name: votacion-server-service
+  name: voting-server-service
+  labels:
+    app: voting-app
+    component: server
 spec:
-  selector:
-    app: votacion-server
   type: NodePort 
+  selector:
+    component: server
   ports:
     - protocol: TCP
-      port: 65432    
+      port: 65432 
       targetPort: 65432 
-      nodePort: 30000 

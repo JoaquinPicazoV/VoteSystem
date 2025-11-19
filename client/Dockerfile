@@ -4,4 +4,4 @@ WORKDIR /app
 
 COPY client.py /app/
 
-ENTRYPOINT ["python", "client.py"]
+CMD ["tail", "-f", "/dev/null"]
