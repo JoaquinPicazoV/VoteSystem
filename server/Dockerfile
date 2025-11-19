@@ -6,4 +6,4 @@ COPY server.py /app/
 
 EXPOSE 65432
 
-CMD ["python", "server.py"]
+CMD ["python", "-u", "server.py"]
