@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: votacion-server-deployment
+  labels:
+    app: votacion-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: votacion-server
+  template:
+    metadata:
+      labels:
+        app: votacion-server
+    spec:
+      containers:
+      - name: server-container
+        image: joaquinpicazo/votacion_server:latest
+        ports:
+        - containerPort: 65432
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: votacion-server-service
+spec:
+  selector:
+    app: votacion-server
+  type: NodePort 
+  ports:
+    - protocol: TCP
+      port: 65432    
+      targetPort: 65432 
+      nodePort: 30000 
