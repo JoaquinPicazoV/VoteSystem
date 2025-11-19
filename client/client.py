@@ -1,16 +1,27 @@
 import socket
 import sys
 
-PUERTO = 65432
+PUERTO_DEFECTO = 65432
 
-# Prácticamente se maneja toda la conexión y comunicación del cliente al servidor
-def iniciar_cliente():
-    direccion_entrada = input("Ingresa la dirección IP del servidor: ")
-    DIRECCION_HOST = direccion_entrada.strip()
+def iniciar_cliente():    
+    direccion_entrada = input("Ingresa la dirección IP del servidor (ej: 192.168.49.2:30000): ")
+    entrada_limpia = direccion_entrada.strip()
 
-    if not DIRECCION_HOST:
+    if not entrada_limpia:
         print("No se ingresó una dirección de host válida.")
         return
+
+    if ':' in entrada_limpia:
+        try:
+            DIRECCION_HOST, puerto_str = entrada_limpia.rsplit(':', 1)
+            PUERTO = int(puerto_str)
+        except ValueError:
+            print(f"Error: El puerto '{puerto_str}' no es un número válido.")
+            return
+    else:
+
+        DIRECCION_HOST = entrada_limpia
+        PUERTO = PUERTO_DEFECTO
 
     print(f"Intentando conectar a {DIRECCION_HOST}:{PUERTO}...")
 
