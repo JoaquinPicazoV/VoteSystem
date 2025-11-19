@@ -1,0 +1,48 @@
+# 🗳️ Trabajo 3: Vote System
+
+## 👥 Estudiantes
+Sebastián Leiva - Joaquín Picazo
+
+## ✨ Resumen del proyecto
+Este proyecto implementa el **Caso 5: Vote System** para el Trabajo 3. El objetivo es crear un sistema de votación en donde los clientes pueden realizar votaciones eligiendo una opción con el comando **"VOTE [OPCIÓN]"**, para lo cual el servidor debe mostar en pantalla que se emitió un nuevo voto, el resumen del conteo y evitar que el mismo cliente (IP) vote más de una vez. Esto se debe llevar a cabo dockerizando el cliente y servidor y desplegarlo con Kubernetes (k8s).
+
+## 📢 Recomendaciones previas
+1) Contar con Python instalado, preferentemente la versión más estable y reciente
+2) Contar con Docker y Kubernetes instalado (minikube, kubectl, etc.)
+
+## 🛠️ Tecnologías utilizadas
+1) 🐍 Python (Cliente-Servidor)
+2) 🐳 Docker (Contenedores)
+3) ☸️ Kubernetes (Orquestación)
+
+# 💻 Ejecución y uso sin Docker ni Kubernetes (solo los archivos en python)
+## 📂 Paso 1: Clonar repositorio
+```bash
+git clone {URL_repositorio_git}
+```
+## 🌐 Paso 2: Obtener IP de la máquina host (servidor)
+```bash
+hostname -I #En caso de linux (más recomendable usar linux)
+
+ipconfig #En caso de windows
+```
+## 🖥️ Paso 3: Correr el servidor
+Entrar al directorio del archivo python server.py
+```bash
+python3 server.py #En caso de linux (más recomendable usar linux)
+
+python server.py #En caso de windows
+```
+## 📱 Paso 4: Conectarse con un dispositivo cliente
+Entrar al directorio del archivo python client.py
+```bash
+python3 client.py #En caso de linux (más recomendable usar linux)
+
+python client.py #En caso de windows
+```
+## 🔑 Paso 5: Ingresar la IP del servidor 
+Al ejecutar el código en python del cliente, se solicitará la IP del servidor que hostea el sistema de votación. Usar la IP obtenida del paso 2.
+## ✅ Paso 6: Efectuar votación
+Seguir las instrucciones que vaya otorgando el sistema y realizar la votación. Solo se permite 1 votación por IP.
+
+# 🐳☸️ Ejecución con Docker y Kubernetes
