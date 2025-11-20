@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voting-client-deployment
+  labels:
+    app: voting-app
+    component: client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: client
+  template:
+    metadata:
+      labels:
+        app: voting-app
+        component: client
+    spec:
+      containers:
+      - name: voting-client
+        image: joaquinpicazo/votesys_client:client-latest 
+        stdin: true
+        tty: true
+        resources:
+          limits:
+            memory: "64Mi"
+            cpu: "250m"

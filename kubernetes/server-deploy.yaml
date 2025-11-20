@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: voting-server
-        image: joaquinpicazo/votacion_server:latest
+        image: joaquinpicazo/votesys_server:server-latest
         ports:
         - name: tcp-socket
           containerPort: 65432
