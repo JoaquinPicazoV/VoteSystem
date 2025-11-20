@@ -3,15 +3,16 @@ kind: Ingress
 metadata:
   name: voting-ingress
   annotations:
+    kubernetes.io/ingress.class: "nginx" 
 spec:
   rules:
-  - host: vote.system.ula
+  - host: vote.system.ula 
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: voting-server-service 
-            port:
+            name: voting-server-service
+            port:              
               number: 65432
