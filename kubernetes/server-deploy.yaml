@@ -1,14 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: voting-server-deployment
+  name: voting-server
   labels:
     app: voting-app
-    component: server
+    tier: backend
 spec:
-  replicas: 1
+  replicas: 1 
   selector:
     matchLabels:
+      app: voting-app
       component: server
   template:
     metadata:
@@ -17,30 +18,11 @@ spec:
         component: server
     spec:
       containers:
-      - name: voting-server
-        image: joaquinpicazo/votesys_server:server-latest
+      - name: server
+        image: joaquinpicazo/votesys_server:server-latest 
         ports:
-        - name: tcp-socket
-          containerPort: 65432
+        - containerPort: 65432
         resources:
           limits:
             memory: "128Mi"
             cpu: "500m"
-        imagePullPolicy: Always
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: voting-server-service
-  labels:
-    app: voting-app
-    component: server
-spec:
-  type: NodePort 
-  selector:
-    component: server
-  ports:
-    - protocol: TCP
-      port: 65432 
-      targetPort: 65432 

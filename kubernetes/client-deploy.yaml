@@ -4,11 +4,12 @@ metadata:
   name: voting-client-deployment
   labels:
     app: voting-app
-    component: client
+    tier: frontend
 spec:
-  replicas: 1
+  replicas: 0 
   selector:
     matchLabels:
+      app: voting-app
       component: client
   template:
     metadata:
@@ -17,11 +18,5 @@ spec:
         component: client
     spec:
       containers:
-      - name: voting-client
+      - name: client
         image: joaquinpicazo/votesys_client:client-latest 
-        stdin: true
-        tty: true
-        resources:
-          limits:
-            memory: "64Mi"
-            cpu: "250m"

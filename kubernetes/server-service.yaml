@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: voting-server-service
+  labels:
+    app: voting-app
+    tier: backend
+spec:
+  selector:
+    app: voting-app
+    component: server
+  type: ClusterIP 
+  ports:
+    - protocol: TCP
+      port: 65432 
+      targetPort: 65432 
