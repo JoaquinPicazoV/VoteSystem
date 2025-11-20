@@ -76,3 +76,32 @@ docker rm votesys-server-instance
 ```
 
 # ☸️ Utilizar kubernetes para ofrecer el servidor de votación
+⚙️ Es importante inicializar minikube con:
+```bash
+minikube start --driver=docker
+```
+🚀 Paso 1: Ingresar al directorio /kubernetes del proyecto y ejecutar los yaml. Luego esperar unos minutos.
+```bash
+kubectl aplly -f server-deploy.yaml
+
+kubectl apply -f server-service.yaml
+
+kubectl aplly -f client-deploy.yaml
+```
+🗺️ Paso 2: Obtener la IP que tiene asignada la computadora host en la red LAN y el nombre del pods.
+```bash
+hostname -I # IP en la red local
+kubectl get pods -l component=server # nombre del pods en columna NAME
+```
+🔗 Paso 3: Realizar un port forward de la computadora a nuestro servicio de kubernetes (dejar corriendo en otra pestaña de la terminal)
+```bash
+kubectl port-forward {nombre_del_pods} 65432:65432 --address {ip_asignada_red_LAN}
+```
+📝 Paso 4: Revisar los logs del servicio para ver interacciones de los clientes (dejar corriendo en otra pestaña de la terminal)
+```bash
+kubectl logs -f {nombre_del_pods} #Nombre del pod se obtiene en el paso 2
+```
+💻 Paso 5: Conectar un cliente al servicio existente en Kubernetes usando la imagen de cliente de Docker Hub
+```bash
+docker run -it --rm joaquinpicazo/votesys_client:client-latest #Cuando pida ip:puerto ingresar la IP obtenida en el paso 2 y puerto 65432
+```
