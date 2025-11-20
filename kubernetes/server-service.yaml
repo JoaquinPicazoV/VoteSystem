@@ -9,7 +9,7 @@ spec:
   selector:
     app: voting-app
     component: server
-  type: ClusterIP 
+  type: NodePort 
   ports:
     - protocol: TCP
       port: 65432 
