@@ -46,3 +46,33 @@ Al ejecutar el código en python del cliente, se solicitará la IP del servidor 
 Seguir las instrucciones que vaya otorgando el sistema y realizar la votación. Solo se permite 1 votación por IP.
 
 # 🐳☸️ Ejecución con Docker y Kubernetes
+## 🐳 Dockerizar cliente y servidor + push a Docker Hub (Incluyendo el uso de imágenes puras de Docker Hub)
+Ingresar a la raiz del proyecto y ejecutar en este orden:
+```bash
+docker build -t votesys-server:latest -f server/Dockerfile ./server
+docker build -t votesys-client:latest -f client/Dockerfile ./client
+
+docker tag votesys-server:latest joaquinpicazo/votesys_server:server-latest
+docker tag votesys-client:latest joaquinpicazo/client:client-latest
+
+# Se necesita iniciar sesión en Docker Hub para hacer efectivo el push
+docker push joaquinpicazo/votesys_server:server-latest
+docker push joaquinpicazo/votesys_client:client-latest
+
+# EJECUCIONES USANDO LAS IMAGENES DOCKER
+docker run --name votesys-server-instance -p 65432:65432 joaquinpicazo/votesys_server:server-latest #PARA EJECUTAR LA IMAGEN DEL SERVIDOR DE DOCKER HUB
+docker run -it --rm joaquinpicazo/votesys_client:client-latest #PARA EJECUTAR LA IMAGEN DEL CLIENTE DE DOCKER HUB
+```
+Al ejecutar el cliente, conectarse colocando la IP asignada a la máquina que hostea el servidor.
+```bash
+hostname -I #Ejecutar este comando el la maquina que hostea el server para saber su IP en la red LAN
+```
+
+OBS: Si ya hay una instancia con ese nombre y hay problema para ejecutar el servidor, basta con ejecutar los siguientes comandos y volver a ejecutar el servidor con la imagen de Docker Hub
+```bash
+docker stop votesys-server-instance
+
+docker rm votesys-server-instance
+```
+
+# ☸️ Utilizar kubernetes para ofrecer el servidor de votación
