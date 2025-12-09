@@ -25,9 +25,26 @@ def iniciar_cliente():
 
     print(f"Intentando conectar a {DIRECCION_HOST}:{PUERTO}...")
 
+    # Obtener la IP real del dispositivo en la red
+    try:
+        # Conectamos temporalmente a un servidor externo para obtener nuestra IP local
+        temp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        temp_socket.connect(("8.8.8.8", 80))  # Conectamos a Google DNS para obtener IP local
+        ip_real_dispositivo = temp_socket.getsockname()[0]
+        temp_socket.close()
+    except Exception:
+        # Si falla, intentamos obtener la IP del hostname
+        try:
+            ip_real_dispositivo = socket.gethostbyname(socket.gethostname())
+        except Exception:
+            ip_real_dispositivo = "0.0.0.0"  # Fallback
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
             s.connect((DIRECCION_HOST, PUERTO))
+            
+            # Enviar la IP real del dispositivo al servidor
+            s.sendall(f"CLIENT_IP:{ip_real_dispositivo}\n".encode('utf-8'))
             
             datos_iniciales = s.recv(1024)
             if datos_iniciales:

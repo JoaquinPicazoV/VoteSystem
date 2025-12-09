@@ -9,7 +9,7 @@ spec:
   selector:
     app: voting-app
     component: server
-  type: NodePort 
+  type: ClusterIP  # Cambiado a ClusterIP para usar con Ingress
   ports:
     - protocol: TCP
       port: 65432 

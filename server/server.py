@@ -12,6 +12,7 @@ OPCIONES_PERMITIDAS = {
     "FranCISCO": 0,
     "Camilo LOVER": 0,
     "Juan.py": 0,
+    "Thomas PINTA": 0,
     "NULO": 0
 }
 CONTEO_VOTOS = OPCIONES_PERMITIDAS.copy()
@@ -19,7 +20,9 @@ CONTEO_VOTOS = OPCIONES_PERMITIDAS.copy()
 # Mapeamos para insensibilidad a mayusculas y minusculas
 MAPEO_VOTOS = {clave.upper(): clave for clave in OPCIONES_PERMITIDAS.keys()}
 
-# guardamos las IP para que no voten 2 veces (1 voto por IP dentro de la LAN)
+# guardamos las IPs reales de los dispositivos en la red para que no voten 2 veces
+# El cliente envía su IP real al conectarse, permitiendo identificar cada dispositivo
+# incluso cuando todos pasan por el mismo proxy/Ingress
 VOTANTES_REGISTRADOS = set()
 
 # funcion para mostrar el conteo de los votos cada vez que se hace uno nuevo
@@ -38,9 +41,32 @@ def mostrar_resumen():
 
 # manejamos TODA la interaccion con el cliente, tanto recibir datos como enviarle
 def manejar_cliente(conexion, direccion):
-    ip_cliente = direccion[0] 
-    identificador_cliente = ip_cliente 
-    print(f"Cliente conectado desde {identificador_cliente} (Puerto: {direccion[1]})")
+    ip_proxy = direccion[0]  # IP del proxy/Ingress (puede ser la misma para todos)
+    puerto_cliente = direccion[1]
+    
+    # Recibir la IP real del dispositivo que envía el cliente
+    ip_real_dispositivo = None
+    try:
+        # Esperar el primer mensaje con la IP real del dispositivo
+        datos_iniciales = conexion.recv(1024)
+        if datos_iniciales:
+            mensaje_inicial = datos_iniciales.decode('utf-8').strip()
+            if mensaje_inicial.startswith("CLIENT_IP:"):
+                ip_real_dispositivo = mensaje_inicial.split("CLIENT_IP:")[1].strip()
+            else:
+                # Si no viene el formato esperado, usar la IP del proxy como fallback
+                ip_real_dispositivo = ip_proxy
+        else:
+            ip_real_dispositivo = ip_proxy
+    except Exception as e:
+        print(f"Error al recibir IP del cliente: {e}")
+        ip_real_dispositivo = ip_proxy
+    
+    # Usar la IP real del dispositivo como identificador único
+    # Esto permite identificar correctamente cada dispositivo en la red
+    identificador_cliente = ip_real_dispositivo
+    print(f"Cliente conectado desde {ip_proxy} (Puerto: {puerto_cliente})")
+    print(f"  → IP real del dispositivo en la red: {ip_real_dispositivo}")
     
     ya_voto = identificador_cliente in VOTANTES_REGISTRADOS
 
@@ -48,11 +74,11 @@ def manejar_cliente(conexion, direccion):
         lista_opciones = ", ".join(OPCIONES_PERMITIDAS.keys())
         
         if ya_voto:
-             conexion.sendall(f"Ya has votado (IP: {identificador_cliente}). Tu voto ya fue registrado. Solo se permite un voto por IP.".encode('utf-8'))
-             print(f"Cliente {identificador_cliente} intentó votar de nuevo.")
+             conexion.sendall(f"Ya has votado (IP del dispositivo: {identificador_cliente}). Tu voto ya fue registrado. Solo se permite un voto por dispositivo en la red.".encode('utf-8'))
+             print(f"Dispositivo {identificador_cliente} intentó votar de nuevo.")
              return 
         else:
-             conexion.sendall(f"Bienvenido IP: {identificador_cliente}. Opciones: {lista_opciones}\nPor favor, vote usando 'VOTE [OPCIÓN]'".encode('utf-8'))
+             conexion.sendall(f"Bienvenido desde dispositivo {ip_real_dispositivo}. Opciones: {lista_opciones}\nPor favor, vote usando 'VOTE [OPCIÓN]'".encode('utf-8'))
         
         while True:
             datos = conexion.recv(1024)
@@ -60,6 +86,10 @@ def manejar_cliente(conexion, direccion):
                 break
             
             mensaje = datos.decode('utf-8').strip().upper()
+            
+            # Ignorar el mensaje inicial de CLIENT_IP si llega aquí
+            if mensaje.startswith("CLIENT_IP:"):
+                continue
 
             if mensaje.startswith("VOTE "):
                 
@@ -83,7 +113,8 @@ def manejar_cliente(conexion, direccion):
                 AZUL = '\033[94m'
                 RESET = '\033[0m'
                 print(f"\n{AZUL}---- NUEVO VOTO EMITIDO ---- {RESET}")
-                print(f"{AZUL}    IP del Votante: {identificador_cliente}{RESET}")
+                print(f"{AZUL}    IP del dispositivo en la red: {ip_real_dispositivo}{RESET}")
+                print(f"{AZUL}    Conexión desde proxy: {ip_proxy}:{puerto_cliente}{RESET}")
                 print(f"{AZUL}    Opción elegida: {clave_voto_original}{RESET}")
                 
                 mostrar_resumen()

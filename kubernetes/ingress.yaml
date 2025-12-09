@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: voting-server-ingress
+  labels:
+    app: voting-app
+    tier: backend
+  annotations:
+    # Anotación para indicar que usaremos TCP passthrough
+    nginx.ingress.kubernetes.io/ssl-passthrough: "false"
+spec:
+  ingressClassName: nginx
+  # Nota: Para TCP passthrough, la configuración real se hace en el ConfigMap
+  # Este recurso Ingress es principalmente para documentación y cumplir requisitos
+  rules:
+  - host: voting-server.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: voting-server-service
+            port:
+              number: 65432
+
