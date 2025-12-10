@@ -82,11 +82,11 @@ minikube start --driver=docker
 ```
 🚀 Paso 1: Ingresar al directorio /kubernetes del proyecto y ejecutar los yaml. Luego esperar unos minutos.
 ```bash
-kubectl apply -f server-deploy.yaml
+kubectl aplly -f server-deploy.yaml
 
 kubectl apply -f server-service.yaml
 
-kubectl apply -f client-deploy.yaml
+kubectl aplly -f client-deploy.yaml
 ```
 🗺️ Paso 2: Obtener la IP que tiene asignada la computadora host en la red LAN y el nombre del pods.
 ```bash
