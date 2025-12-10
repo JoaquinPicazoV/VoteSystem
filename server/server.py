@@ -2,7 +2,6 @@ import socket
 import threading
 import time
 
-# Configuracion del hosting
 DIRECCION_HOST = '0.0.0.0'
 PUERTO = 65432
 BLOQUEO = threading.Lock()
@@ -16,7 +15,6 @@ OPCIONES_PERMITIDAS = {
 CONTEO_VOTOS = OPCIONES_PERMITIDAS.copy()
 MAPEO_VOTOS = {clave.upper(): clave for clave in OPCIONES_PERMITIDAS.keys()}
 
-# AHORA guardamos UUIDs, no IPs
 VOTANTES_REGISTRADOS = set()
 
 def mostrar_resumen():
@@ -33,20 +31,15 @@ def mostrar_resumen():
         print(f"{ROJO}{'='*40}{RESET}")
 
 def manejar_cliente(conexion, direccion):
-    ip_real = direccion[0] # Solo para logs informativos
+    ip_real = direccion[0] 
     
     try:
-        # --- CAMBIO 1: RECIBIR ID DEL CLIENTE PRIMERO ---
-        # Esperamos el UUID generado por el cliente
         uuid_cliente = conexion.recv(1024).decode('utf-8').strip()
         
         if not uuid_cliente:
-            return # Si no manda ID, cerramos
+            return 
             
         print(f"Cliente conectado. IP Red: {ip_real} | UUID: {uuid_cliente}")
-        # ------------------------------------------------
-        
-        # --- CAMBIO 2: VERIFICAR POR UUID, NO POR IP ---
         ya_voto = uuid_cliente in VOTANTES_REGISTRADOS
 
         lista_opciones = ", ".join(OPCIONES_PERMITIDAS.keys())
@@ -81,7 +74,7 @@ def manejar_cliente(conexion, direccion):
 
                 with BLOQUEO:
                     CONTEO_VOTOS[clave_voto_original] += 1
-                    VOTANTES_REGISTRADOS.add(uuid_cliente) # Registramos el UUID
+                    VOTANTES_REGISTRADOS.add(uuid_cliente) 
                     ya_voto = True 
                 
                 AZUL = '\033[94m'
