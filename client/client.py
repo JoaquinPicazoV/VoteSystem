@@ -3,93 +3,75 @@ import sys
 
 PUERTO_DEFECTO = 65432
 
+def obtener_ip_local():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip_local = s.getsockname()[0]
+        s.close()
+        return ip_local
+    except Exception:
+        return "127.0.0.1"
+
 def iniciar_cliente():    
-    direccion_entrada = input("Ingresa la dirección IP del servidor (ej: 192.168.49.2:30000): ")
+    direccion_entrada = input("Ingresa la dirección IP del servidor (ej: 192.168.1.10): ")
     entrada_limpia = direccion_entrada.strip()
 
     if not entrada_limpia:
-        print("No se ingresó una dirección de host válida.")
+        print("Debes ingresar una IP.")
         return
 
+    DIRECCION_HOST = entrada_limpia
+    PUERTO = PUERTO_DEFECTO
+    
     if ':' in entrada_limpia:
         try:
             DIRECCION_HOST, puerto_str = entrada_limpia.rsplit(':', 1)
             PUERTO = int(puerto_str)
         except ValueError:
-            print(f"Error: El puerto '{puerto_str}' no es un número válido.")
+            print("Puerto inválido.")
             return
-    else:
 
-        DIRECCION_HOST = entrada_limpia
-        PUERTO = PUERTO_DEFECTO
+    mi_ip_local = obtener_ip_local()
+    print(f"Detectado: Tu IP en la red es {mi_ip_local}")
+    print(f"Conectando a {DIRECCION_HOST}:{PUERTO}...")
 
-    print(f"Intentando conectar a {DIRECCION_HOST}:{PUERTO}...")
-
-    # Obtener la IP real del dispositivo en la red
     try:
-        # Conectamos temporalmente a un servidor externo para obtener nuestra IP local
-        temp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        temp_socket.connect(("8.8.8.8", 80))  # Conectamos a Google DNS para obtener IP local
-        ip_real_dispositivo = temp_socket.getsockname()[0]
-        temp_socket.close()
-    except Exception:
-        # Si falla, intentamos obtener la IP del hostname
-        try:
-            ip_real_dispositivo = socket.gethostbyname(socket.gethostname())
-        except Exception:
-            ip_real_dispositivo = "0.0.0.0"  # Fallback
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((DIRECCION_HOST, PUERTO))
             
-            # Enviar la IP real del dispositivo al servidor
-            s.sendall(f"CLIENT_IP:{ip_real_dispositivo}\n".encode('utf-8'))
+            s.sendall(f"CLIENT_IP:{mi_ip_local}".encode('utf-8'))
             
+    
             datos_iniciales = s.recv(1024)
-            if datos_iniciales:
-                print("="*40)
-                respuesta = datos_iniciales.decode('utf-8')
-                print(respuesta)
-                print("="*40)
-            else:
-                print("Conexión inicial fallida. El servidor puede estar cerrado.")
-                return
+            mensaje_servidor = datos_iniciales.decode('utf-8')
             
-            if "Ya has votado" in respuesta:
-                return
+            print("\n" + "="*40)
+            print(mensaje_servidor)
+            print("="*40)
 
+            if "Ya has votado" in mensaje_servidor:
+                return
             while True:
-                comando = input("Tu voto > ")
-                
-                if not comando:
-                    continue
+                comando = input("\nEscribe tu voto (ej: VOTE Juan.py) o EXIT > ")
+                if not comando: continue
                 
                 s.sendall(comando.encode('utf-8'))
                 
                 if comando.strip().upper() == "EXIT":
                     break
                 
-                datos = s.recv(1024)
-                if datos:
-                    respuesta = datos.decode('utf-8')
-                    print(f"Respuesta del Servidor: {respuesta}")
-                    
-                    if "Voto registrado exitosamente" in respuesta:
-                        print("\nEl voto único fue emitido. Desconectando...")
-                        break
-                else:
-                    print("El servidor cerró la conexión.")
+                respuesta_voto = s.recv(1024).decode('utf-8')
+                print(f"Servidor: {respuesta_voto}")
+                
+                if "registrado exitosamente" in respuesta_voto:
+                    print("¡Voto completado! Cerrando conexión.")
                     break
 
-        except ConnectionRefusedError:
-            print(f"No se pudo conectar al servidor en {DIRECCION_HOST}:{PUERTO}. Asegúrate de que el servidor esté en ejecución.")
-        except socket.gaierror:
-            print(f"La dirección de host '{DIRECCION_HOST}' no es válida o no se pudo resolver.")
-        except Exception as e:
-            print(f"Ocurrió un error: {e}")
-
-    print("Cliente cerrado.")
+    except ConnectionRefusedError:
+        print("No se pudo conectar. ¿El servidor está encendido?")
+    except Exception as e:
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
     iniciar_cliente()
