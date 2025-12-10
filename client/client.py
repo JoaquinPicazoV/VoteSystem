@@ -20,7 +20,7 @@ def generar_identidad_hardware():
     return uuid_hardware
 
 def iniciar_cliente():    
-    direccion_entrada = input("Ingresa la dirección IP del servidor (ej: 192.168.x.x): ")
+    direccion_entrada = input("Ingresa la dirección IP del servidor (ej: 10.0.21.72): ")
     entrada_limpia = direccion_entrada.strip()
 
     if not entrada_limpia:
