@@ -1,101 +1,176 @@
 import socket
 import threading
+import time
 
+# aqui configuramos el hosting del servidor
 DIRECCION_HOST = '0.0.0.0' 
 PUERTO = 65432 
 BLOQUEO = threading.Lock() 
 
+# ponemos opciones que son permitidas dentro de las votaciones
 OPCIONES_PERMITIDAS = {
-    "FRANCISCO": 0, "CAMILO LOVER": 0, "JUAN.PY": 0, "THOMAS PINTA": 0, "NULO": 0
+    "FranCISCO": 0,
+    "Camilo LOVER": 0,
+    "Juan.py": 0,
+    "Thomas PINTA": 0,
+    "NULO": 0
 }
 CONTEO_VOTOS = OPCIONES_PERMITIDAS.copy()
 
+# Mapeamos para insensibilidad a mayusculas y minusculas
+MAPEO_VOTOS = {clave.upper(): clave for clave in OPCIONES_PERMITIDAS.keys()}
+
+# guardamos las IPs reales de los dispositivos en la red para que no voten 2 veces
+# El cliente envía su IP real al conectarse, permitiendo identificar cada dispositivo
+# incluso cuando todos pasan por el mismo proxy/Ingress
 VOTANTES_REGISTRADOS = set()
 
+# funcion para mostrar el conteo de los votos cada vez que se hace uno nuevo
 def mostrar_resumen():
+    ROJO = '\033[91m'
+    RESET = '\033[0m'
+    
     with BLOQUEO:
-        print(f"\n{'='*20} RECUENTO {'='*20}") 
+        print(f"{ROJO}\n{'='*40}")
+        print("     RESUMEN DEL CONTEO DE VOTOS")
+        print(f"{'='*40}{RESET}") 
         votos_ordenados = sorted(CONTEO_VOTOS.items(), key=lambda item: item[1], reverse=True)
         for opcion, cuenta in votos_ordenados:
-            print(f"  {opcion}: {cuenta}") 
-        print(f"{'='*50}")
+            print(f"{ROJO}  {opcion}: {cuenta} voto(s){RESET}") 
+        print(f"{ROJO}{'='*40}{RESET}")
 
+# manejamos TODA la interaccion con el cliente, tanto recibir datos como enviarle
 def manejar_cliente(conexion, direccion):
-    ip_conexion_real = direccion[0] 
-    identificador_usuario = ip_conexion_real 
+    ip_proxy = direccion[0]  # IP del proxy/Ingress (puede ser la misma para todos)
+    puerto_cliente = direccion[1]
     
+    # Recibir la IP real del dispositivo que envía el cliente
+    ip_real_dispositivo = None
     try:
-        datos_iniciales = conexion.recv(1024).decode('utf-8').strip()
-        
-        if datos_iniciales.startswith("CLIENT_IP:"):
-            ip_reportada = datos_iniciales.split(":")[1]
-            identificador_usuario = ip_reportada
-            print(f"[CONEXIÓN] Cliente reporta IP local: {identificador_usuario}")
-        
-        if identificador_usuario in VOTANTES_REGISTRADOS:
-            msg = f"ERROR: La IP {identificador_usuario} ya ha votado previamente."
-            conexion.sendall(msg.encode('utf-8'))
-            print(f"[RECHAZADO] Intento de voto doble de {identificador_usuario}")
-            return 
+        # Esperar el primer mensaje con la IP real del dispositivo
+        datos_iniciales = conexion.recv(1024)
+        if datos_iniciales:
+            mensaje_inicial = datos_iniciales.decode('utf-8').strip()
+            if mensaje_inicial.startswith("CLIENT_IP:"):
+                ip_real_dispositivo = mensaje_inicial.split("CLIENT_IP:")[1].strip()
+            else:
+                # Si no viene el formato esperado, usar la IP del proxy como fallback
+                ip_real_dispositivo = ip_proxy
+        else:
+            ip_real_dispositivo = ip_proxy
+    except Exception as e:
+        print(f"Error al recibir IP del cliente: {e}")
+        ip_real_dispositivo = ip_proxy
+    
+    # Usar la IP real del dispositivo como identificador único
+    # Esto permite identificar correctamente cada dispositivo en la red
+    identificador_cliente = ip_real_dispositivo
+    print(f"Cliente conectado desde {ip_proxy} (Puerto: {puerto_cliente})")
+    print(f"  → IP real del dispositivo en la red: {ip_real_dispositivo}")
+    
+    ya_voto = identificador_cliente in VOTANTES_REGISTRADOS
 
-        opciones_str = ", ".join(OPCIONES_PERMITIDAS.keys())
-        bienvenida = f"Bienvenido IP {identificador_usuario}. Vota con: VOTE [OPCION]\nOpciones: {opciones_str}"
-        conexion.sendall(bienvenida.encode('utf-8'))
-
+    try:
+        lista_opciones = ", ".join(OPCIONES_PERMITIDAS.keys())
+        
+        if ya_voto:
+             conexion.sendall(f"Ya has votado (IP del dispositivo: {identificador_cliente}). Tu voto ya fue registrado. Solo se permite un voto por dispositivo en la red.".encode('utf-8'))
+             print(f"Dispositivo {identificador_cliente} intentó votar de nuevo.")
+             return 
+        else:
+             conexion.sendall(f"Bienvenido desde dispositivo {ip_real_dispositivo}. Opciones: {lista_opciones}\nPor favor, vote usando 'VOTE [OPCIÓN]'".encode('utf-8'))
+        
         while True:
             datos = conexion.recv(1024)
-            if not datos: break
+            if not datos:
+                break
             
             mensaje = datos.decode('utf-8').strip().upper()
             
-            if mensaje == "EXIT":
-                break
-                
-            if mensaje.startswith("VOTE "):
-                candidato = mensaje[5:].strip()
-                
-                with BLOQUEO:
-                    if identificador_usuario in VOTANTES_REGISTRADOS:
-                         conexion.sendall("Error: Ya registramos un voto tuyo.".encode('utf-8'))
-                         break
+            # Ignorar el mensaje inicial de CLIENT_IP si llega aquí
+            if mensaje.startswith("CLIENT_IP:"):
+                continue
 
-                    if candidato in CONTEO_VOTOS:
-                        CONTEO_VOTOS[candidato] += 1
-                        VOTANTES_REGISTRADOS.add(identificador_usuario) 
-                        conexion.sendall("Voto registrado exitosamente.".encode('utf-8'))
-                        print(f"[VOTO] {identificador_usuario} votó por {candidato}")
-                        mostrar_resumen()
-                        break 
-                    else:
-                        conexion.sendall("Opción no válida. Revisa las opciones.".encode('utf-8'))
+            if mensaje.startswith("VOTE "):
+                
+                if ya_voto:
+                    conexion.sendall("Ya has emitido tu voto y solo se permite uno.".encode('utf-8'))
+                    continue
+                    
+                opcion_voto_mayus = mensaje[5:].strip() 
+                
+                if opcion_voto_mayus not in MAPEO_VOTOS: 
+                    conexion.sendall(f"Opción no válida. Opciones: {lista_opciones}".encode('utf-8'))
+                    continue
+
+                clave_voto_original = MAPEO_VOTOS[opcion_voto_mayus]
+
+                with BLOQUEO:
+                    CONTEO_VOTOS[clave_voto_original] += 1
+                    VOTANTES_REGISTRADOS.add(identificador_cliente) 
+                    ya_voto = True 
+                
+                AZUL = '\033[94m'
+                RESET = '\033[0m'
+                print(f"\n{AZUL}---- NUEVO VOTO EMITIDO ---- {RESET}")
+                print(f"{AZUL}    IP del dispositivo en la red: {ip_real_dispositivo}{RESET}")
+                print(f"{AZUL}    Conexión desde proxy: {ip_proxy}:{puerto_cliente}{RESET}")
+                print(f"{AZUL}    Opción elegida: {clave_voto_original}{RESET}")
+                
+                mostrar_resumen()
+                
+                conexion.sendall("Voto registrado exitosamente. Gracias por participar.".encode('utf-8'))
+                break 
+            
+            elif mensaje == "EXIT":
+                print(f"Cliente {identificador_cliente} solicitó cerrar.")
+                break
+            
             else:
-                conexion.sendall("Comando inválido. Usa 'VOTE [NOMBRE]'".encode('utf-8'))
+                conexion.sendall("Comando no reconocido. Use 'VOTE [OPCIÓN]' o 'EXIT'.".encode('utf-8'))
 
     except Exception as e:
-        print(f"Error con {identificador_usuario}: {e}")
+        print(f"Error en la conexión con {identificador_cliente}: {e}")
+    
     finally:
         conexion.close()
+        print(f"Conexión con {identificador_cliente} cerrada.")
 
+# esto se muestra al iniciar el servidor, se manejan hilos para más de un cliente a la vez
 def iniciar_servidor():
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind((DIRECCION_HOST, PUERTO))
-    server.listen()
-    
-    s_temp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s_temp.connect(("8.8.8.8", 80))
-        ip_servidor = s_temp.getsockname()[0]
-    except:
-        ip_servidor = "127.0.0.1"
-    s_temp.close()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind((DIRECCION_HOST, PUERTO))
+        s.listen(5)
+        
+        try:
+            ip_local = socket.gethostbyname(socket.gethostname())
+        except socket.gaierror:
+            ip_local = "Dirección IP local desconocida"
+            
+        VERDE = '\033[92m'
+        RESET = '\033[0m' 
+        print(f"{VERDE}{'='*60}{RESET}")
+        print(f"{VERDE}SERVIDOR DE VOTACIÓN CORRIENDO{RESET}")
+        print(f"{VERDE}  IP Local de la red: {ip_local}{RESET}")
+        print(f"{VERDE}  Escuchando en TODAS las IPs ({DIRECCION_HOST}) en el puerto: {PUERTO}{RESET}")
+        print(f"{VERDE}{'='*60}{RESET}")
+        
+        mostrar_resumen()
 
-    print(f" SERVIDOR CORRIENDO EN {ip_servidor}:{PUERTO}")
-    print(" Esperando votantes...")
+        while True:
+            try:
+                conexion, direccion = s.accept()
+                hilo_cliente = threading.Thread(target=manejar_cliente, args=(conexion, direccion))
+                hilo_cliente.daemon = True
+                hilo_cliente.start()
 
-    while True:
-        conn, addr = server.accept()
-        thread = threading.Thread(target=manejar_cliente, args=(conn, addr))
-        thread.start()
+            except KeyboardInterrupt:
+                print("\n[SERVIDOR APAGADO]")
+                break
+            except Exception as e:
+                print(f"Fallo al aceptar conexión: {e}")
+                break
 
 if __name__ == "__main__":
     iniciar_servidor()
