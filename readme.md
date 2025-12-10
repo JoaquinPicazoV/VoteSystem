@@ -50,7 +50,7 @@ Seguir las instrucciones que vaya otorgando el sistema y realizar la votación. 
 Ingresar a la raiz del proyecto y ejecutar en este orden:
 ```bash
 docker build -t votesys-server:latest -f server/Dockerfile ./server
-docker build -t votesys-client:latest -f client/Dockerfile ./client
+docker build --no-cache -t joaquinpicazo/votesys_client:client-latest -f client/Dockerfile ./client
 
 docker tag votesys-server:latest joaquinpicazo/votesys_server:server-latest
 docker tag votesys-client:latest joaquinpicazo/client:client-latest
@@ -103,5 +103,5 @@ kubectl logs -f {nombre_del_pods} #Nombre del pod se obtiene en el paso 2
 ```
 💻 Paso 5: Conectar un cliente al servicio existente en Kubernetes usando la imagen de cliente de Docker Hub
 ```bash
-docker run -it --rm joaquinpicazo/votesys_client:client-latest #Cuando pida ip:puerto ingresar la IP obtenida en el paso 2 y puerto 65432
+docker run -it --rm --network host --hostname "{tu_usuario}" joaquinpicazo/votesys_client:client-latest #Cuando pida ip:puerto ingresar la IP obtenida en el paso 2 y puerto 65432
 ```
