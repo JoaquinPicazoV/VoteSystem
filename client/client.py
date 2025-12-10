@@ -1,8 +1,23 @@
 import socket
 import sys
-import uuid 
+import uuid
+import platform
+import getpass
+import hashlib
 
 PUERTO_DEFECTO = 65432
+
+def generar_identidad_hardware():
+    nombre_equipo = platform.node()
+    nombre_usuario = getpass.getuser()
+    sistema_operativo = platform.system()
+    arquitectura = platform.machine()
+    
+    semilla_identidad = f"{nombre_equipo}-{nombre_usuario}-{sistema_operativo}-{arquitectura}"
+
+    uuid_hardware = str(uuid.uuid5(uuid.NAMESPACE_DNS, semilla_identidad))
+    
+    return uuid_hardware
 
 def iniciar_cliente():    
     direccion_entrada = input("Ingresa la dirección IP del servidor (ej: 192.168.x.x): ")
@@ -25,18 +40,15 @@ def iniciar_cliente():
 
     print(f"Intentando conectar a {DIRECCION_HOST}:{PUERTO}...")
 
-
-    MI_UUID = str(uuid.uuid4())
-    print(f"Tu ID de votante generado es: {MI_UUID}")
-
+    MI_UUID = generar_identidad_hardware()
+    print(f"Identificando equipo...")
+    print(f"Tu ID de votante único de hardware es: {MI_UUID}")
+    # -------------------------------------------
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
             s.connect((DIRECCION_HOST, PUERTO))
-            
-
             s.sendall(MI_UUID.encode('utf-8'))
-
             
             datos_iniciales = s.recv(1024)
             if datos_iniciales:
@@ -49,6 +61,7 @@ def iniciar_cliente():
                 return
             
             if "Ya has votado" in respuesta:
+                print("Seguridad: Tu equipo ya ha registrado un voto anteriormente.")
                 return
 
             while True:
