@@ -9,6 +9,7 @@ def obtener_ip_local():
         s.connect(("8.8.8.8", 80))
         ip_local = s.getsockname()[0]
         s.close()
+        print(ip_local)
         return ip_local
     except Exception:
         return "127.0.0.1"
@@ -42,7 +43,6 @@ def iniciar_cliente():
             
             s.sendall(f"CLIENT_IP:{mi_ip_local}".encode('utf-8'))
             
-    
             datos_iniciales = s.recv(1024)
             mensaje_servidor = datos_iniciales.decode('utf-8')
             
@@ -50,8 +50,9 @@ def iniciar_cliente():
             print(mensaje_servidor)
             print("="*40)
 
-            if "Ya has votado" in mensaje_servidor:
+            if "Ya has votado" in mensaje_servidor or "ERROR" in mensaje_servidor:
                 return
+
             while True:
                 comando = input("\nEscribe tu voto (ej: VOTE Juan.py) o EXIT > ")
                 if not comando: continue
@@ -64,12 +65,14 @@ def iniciar_cliente():
                 respuesta_voto = s.recv(1024).decode('utf-8')
                 print(f"Servidor: {respuesta_voto}")
                 
-                if "registrado exitosamente" in respuesta_voto:
-                    print("¡Voto completado! Cerrando conexión.")
-                    break
+                if "Voto registrado" in respuesta_voto:
+                    print("\n[DESCONECTANDO] Gracias por tu participación.")
+                    break 
 
     except ConnectionRefusedError:
         print("No se pudo conectar. ¿El servidor está encendido?")
+    except ConnectionResetError:
+        print("El servidor cerró la conexión.")
     except Exception as e:
         print(f"Error: {e}")
 
