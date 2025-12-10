@@ -9,7 +9,7 @@ def obtener_ip_local():
         s.connect(("8.8.8.8", 80))
         ip_local = s.getsockname()[0]
         s.close()
-        print("enviado: "+ip_local)
+        print(ip_local)
         return ip_local
     except Exception:
         return "127.0.0.1"
