@@ -3,7 +3,7 @@ import threading
 import sys
 import os
 
-DIRECCION_HOST = '0.0.0.0'
+DIRECCION_HOST = '0.0.0.0' # <<-- MANTENER EN 0.0.0.0 PARA ADAPTABILIDAD
 PUERTO = 65432
 BLOQUEO = threading.Lock()
 
@@ -44,6 +44,25 @@ def mostrar_resumen():
         print(f"{VERDE}{'='*45}{RESET}\n")
 
 
+# === FUNCIÓN NUEVA: Obtener la IP local de la red externa ===
+def obtener_ip_lan():
+    try:
+        # Crea un socket UDP para conectarse a una dirección externa (no se envía nada)
+        # Esto fuerza al sistema operativo a seleccionar la mejor interfaz de red externa.
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80)) 
+        ip_local = s.getsockname()[0]
+        s.close()
+        return ip_local
+    except Exception:
+        # Fallback a la IP que el SO cree que es la principal (puede ser la virtual)
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except Exception:
+            return "127.0.0.1"
+# =============================================================
+
+
 def manejar_cliente(conexion, direccion):
     ip_proxy = direccion[0]
     puerto_cliente = direccion[1]
@@ -60,7 +79,6 @@ def manejar_cliente(conexion, direccion):
         pass
         
     # Lógica de identificación: Priorizar la IP reportada por el cliente.
-    # Esto soluciona el problema de 127.0.0.1 en port-forwarding
     if ip_reportada and ip_reportada != '127.0.0.1':
         identificador_cliente = ip_reportada
     else:
@@ -147,10 +165,9 @@ def iniciar_servidor():
         print(f"Error al iniciar el socket: {e}")
         return
         
-    try:
-        ip_local = socket.gethostbyname(socket.gethostname())
-    except socket.gaierror:
-        ip_local = "Dirección IP local desconocida"
+    # --- USAR FUNCIÓN CORREGIDA PARA EL REPORTE ---
+    ip_local = obtener_ip_lan()
+    # ---------------------------------------------
             
     VERDE = '\033[92m'
     RESET = '\033[0m'
