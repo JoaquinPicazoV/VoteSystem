@@ -11,9 +11,7 @@ OPCIONES_PERMITIDAS = {
     "FRANCISCO": 0, "CAMILO LOVER": 0, "JUAN.PY": 0, "THOMAS PINTA": 0, "NULO": 0
 }
 CONTEO_VOTOS = OPCIONES_PERMITIDAS.copy()
-
 MAPEO_VOTOS = {clave.upper(): clave for clave in OPCIONES_PERMITIDAS.keys()}
-
 VOTANTES_REGISTRADOS = set()
 
 def limpiar_pantalla():
@@ -31,7 +29,7 @@ def mostrar_resumen():
     with BLOQUEO:
         total = sum(CONTEO_VOTOS.values())
         print(f"\n{VERDE}{'='*45}{RESET}")
-        print(f"{VERDE}      📊  RESUMEN DEL CONTEO DE VOTOS 📊 {RESET}")
+        print(f"{VERDE}     📊  RESUMEN DEL CONTEO DE VOTOS 📊 {RESET}")
         print(f"{VERDE}{'='*45}{RESET}")
         print(f"{AZUL}  TOTAL VOTOS EMITIDOS: {total}{RESET}")
         print(f"{VERDE}{'-'*45}{RESET}")
@@ -59,13 +57,18 @@ def manejar_cliente(conexion, direccion):
             if mensaje_inicial.startswith("CLIENT_IP:"):
                 ip_reportada = mensaje_inicial.split("CLIENT_IP:")[1].strip()
     except Exception:
-        pass 
-    
+        pass
+        
+    # Lógica de identificación: Priorizar la IP reportada por el cliente.
+    # Esto soluciona el problema de 127.0.0.1 en port-forwarding
+    if ip_reportada and ip_reportada != '127.0.0.1':
+        identificador_cliente = ip_reportada
+    else:
+        identificador_cliente = ip_proxy
+        if ip_reportada and ip_reportada == '127.0.0.1':
+             print(f"\n⚠️ ALERTA: Cliente reportó 127.0.0.1. Usando IP de socket/proxy: {identificador_cliente}")
 
-    identificador_cliente = ip_reportada if ip_reportada else ip_proxy
-
-
-    print(f"Cliente conectado desde {ip_proxy} (Puerto: {puerto_cliente})")
+    print(f"\nCliente conectado desde {ip_proxy} (Puerto: {puerto_cliente})")
     print(f" → ID de voto usado: {identificador_cliente}")
     
     ya_voto = identificador_cliente in VOTANTES_REGISTRADOS
@@ -168,8 +171,8 @@ def iniciar_servidor():
 
         except KeyboardInterrupt:
             print("\n" + "="*50)
-            print("        [SERVIDOR APAGADO POR EL USUARIO] ")
-            print("         RESUMEN FINAL ANTES DE CERRAR")
+            print("         [SERVIDOR APAGADO POR EL USUARIO] ")
+            print("          RESUMEN FINAL ANTES DE CERRAR")
             print("="*50)
             mostrar_resumen()
             server.close()
